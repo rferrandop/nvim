@@ -11,10 +11,29 @@ return {
                 mappings = {
                     i = {
                         ["<esc>"] = actions.close,
+                        ["<C-u>"] = false,
+                        ["<C-d>"] = false,
                     },
                 },
+                layout_strategy = 'horizontal',
+                layout_config = {
+                    horizontal = {
+                        preview_width = 0.55,
+                        results_width = 0.8,
+                    },
+                },
+                file_ignore_patterns = { "node_modules", "target", "dist", "build", ".git" },
             },
-
+            pickers = {
+                find_files = {
+                    hidden = true,
+                },
+                live_grep = {
+                    additional_args = function()
+                        return { "--hidden" }
+                    end,
+                },
+            },
         })
     end,
     keys = function()

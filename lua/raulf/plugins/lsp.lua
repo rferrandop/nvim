@@ -104,6 +104,12 @@ return {
                     local buf = event.buf
                     local opts = { buffer = buf, silent = true }
 
+                    -- Setup navic if available
+                    local ok, navic = pcall(require, 'nvim-navic')
+                    if ok then
+                        navic.attach(event.client, buf)
+                    end
+
                     -- Navigation
                     map("n", "K",           vim.lsp.buf.hover,          vim.tbl_extend("force", opts, { desc = "Hover docs" }))
                     map("n", "gd",          vim.lsp.buf.definition,     vim.tbl_extend("force", opts, { desc = "Go to definition" }))
