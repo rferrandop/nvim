@@ -104,10 +104,11 @@ return {
                     local buf = event.buf
                     local opts = { buffer = buf, silent = true }
 
-                    -- Setup navic if available
+                    local client = vim.lsp.get_client_by_id(event.data.client_id)
+
                     local ok, navic = pcall(require, 'nvim-navic')
-                    if ok then
-                        navic.attach(event.client, buf)
+                    if ok and client then
+                        navic.attach(client, buf)
                     end
 
                     -- Navigation
