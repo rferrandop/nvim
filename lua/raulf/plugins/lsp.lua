@@ -1,7 +1,33 @@
 return {
     {
+        "williamboman/mason.nvim",
+        config = function()
+            require("mason").setup({
+                ui = {
+                    border = "rounded",
+                    icons = {
+                        package_installed = "✓",
+                        package_pending = "➜",
+                        package_uninstalled = "✗"
+                    }
+                }
+            })
+        end
+    },
+    {
+        "williamboman/mason-lspconfig.nvim",
+        dependencies = { "williamboman/mason.nvim" },
+        config = function()
+            require("mason-lspconfig").setup({
+                automatic_installation = false,
+            })
+        end
+    },
+    {
         "neovim/nvim-lspconfig",
         dependencies = {
+            "williamboman/mason.nvim",
+            "williamboman/mason-lspconfig.nvim",
             "hrsh7th/cmp-nvim-lsp",
             "hrsh7th/cmp-buffer",
             "hrsh7th/cmp-path",
@@ -16,10 +42,11 @@ return {
             local lsp = vim.lsp
             local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-            -- Load friendly-snippets (VS Code-style snippets for many languages)
+            -- Load friendly-snippets
             require("luasnip.loaders.from_vscode").lazy_load()
 
-            lsp.config["nil_ls"] = {
+            -- Configurar servidores LSP
+            lsp.config("nil_ls", {
                 capabilities = capabilities,
                 settings = {
                     ['nil'] = {
@@ -30,19 +57,35 @@ return {
                     vim.bo[bufnr].tabstop = 2
                     vim.bo[bufnr].shiftwidth = 2
                 end,
-            }
+            })
 
-            lsp.config["tsserver"] = {
-                cmd = { 'typescript-language-server', '--stdio' },
-                filetypes = { 'typescript' },
-                root_dir = vim.fs.root(0, { 'package.json', '.git' }),
+            lsp.config("ts_ls", {
                 capabilities = capabilities,
-            }
+            })
 
-            lsp.enable("tsserver")
+            lsp.config("lua_ls", {
+                capabilities = capabilities,
+                settings = {
+                    Lua = {
+                        runtime = { version = 'LuaJIT' },
+                        workspace = {
+                            checkThirdParty = false,
+                            library = {
+                                vim.env.VIMRUNTIME,
+                            }
+                        },
+                    }
+                }
+            })
+
+            -- Habilitar servidores
+            lsp.enable("ts_ls")
+            lsp.enable("lua_ls")
             lsp.enable("nil_ls")
 
             require("fidget").setup({})
+
+
 
             local cmp = require('cmp')
             local luasnip = require('luasnip')
