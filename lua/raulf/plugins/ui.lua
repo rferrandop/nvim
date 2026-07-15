@@ -11,7 +11,6 @@ return {
 
             require('lualine').setup {
                 options = {
-                    always_show_tabline = true,
                     theme = 'auto',
                     section_separators = { left = '', right = '' },
                     component_separators = { left = '', right = '' },
@@ -43,21 +42,8 @@ return {
                     lualine_y = { 'progress' },
                     lualine_z = { 'location' },
                 },
-                tabline = {
-                    lualine_a = {
-                        {
-                            'buffers',
-                            show_filename_only = false,
-                            hide_filename_extension = false,
-                            max_length = vim.o.columns * 2 / 3,
-                            buffers_color = {
-                                active = 'lualine_a_normal',
-                                inactive = 'lualine_b_inactive',
-                            },
-                        },
-                    },
-                    lualine_z = { 'tabs' },
-                },
+                -- The top bar (buffers/tabs) is owned by bufferline.nvim; keeping a
+                -- lualine tabline here made both plugins fight over showtabline.
             }
         end
     },
@@ -104,11 +90,20 @@ return {
         config = function()
             require('bufferline').setup {
                 options = {
-                    mode = "tabs",
-                    separator_style = "slant",
+                    -- buffers, not tabs: you navigate buffers with <S-h>/<S-l>
+                    mode = "buffers",
+                    separator_style = "thin",
                     show_buffer_close_icons = true,
                     show_close_icon = false,
                     color_icons = true,
+                    offsets = {
+                        {
+                            filetype = "neo-tree",
+                            text = "File Explorer",
+                            highlight = "Directory",
+                            separator = true,
+                        },
+                    },
                     diagnostics = "nvim_lsp",
                     diagnostics_indicator = function(count, level)
                         local icon = level:match("error") and " " or " "

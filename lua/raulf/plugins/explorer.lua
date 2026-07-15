@@ -15,6 +15,17 @@ return {
         opts = {
             close_if_last_window = true,
 
+            -- Long (grouped) directory names would otherwise wrap onto a second
+            -- line inside the tree; force nowrap on the neo-tree window.
+            event_handlers = {
+                {
+                    event = "neo_tree_buffer_enter",
+                    handler = function()
+                        vim.opt_local.wrap = false
+                    end,
+                },
+            },
+
             sources = { "filesystem", "git_status" },
 
             source_selector = {

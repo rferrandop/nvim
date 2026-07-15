@@ -21,6 +21,13 @@ return {
         end,
     },
     {
+        'echasnovski/mini.bufremove',
+        version = '*',
+        config = function()
+            require('mini.bufremove').setup()
+        end,
+    },
+    {
         'folke/todo-comments.nvim',
         dependencies = { 'nvim-lua/plenary.nvim' },
         opts = {
