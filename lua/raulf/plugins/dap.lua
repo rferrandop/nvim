@@ -58,6 +58,18 @@ return {
             { "<leader>dh", function() require("dap.ui.widgets").hover() end,  desc = "DAP hover value" },
             { "<leader>dp", function() require("dap.ui.widgets").preview() end,desc = "DAP preview" },
 
+            -- Reload per-project launch profiles after editing .vscode/launch.json
+            { "<leader>dL", function()
+                local vscode = require("dap.ext.vscode")
+                local f = vim.fn.getcwd() .. "/.vscode/launch.json"
+                if vim.fn.filereadable(f) == 1 then
+                    vscode.load_launchjs(f, { java = { "java" } })
+                    vim.notify("Reloaded " .. f)
+                else
+                    vim.notify("No .vscode/launch.json in " .. vim.fn.getcwd(), vim.log.levels.WARN)
+                end
+            end, desc = "DAP reload launch.json" },
+
             -- UI
             { "<leader>du", function() require("dapui").toggle() end,          desc = "DAP toggle UI" },
             { "<leader>de", function() require("dapui").eval() end,            desc = "DAP eval expression",  mode = { "n", "v" } },

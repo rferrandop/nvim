@@ -14,6 +14,45 @@ return {
 
             local jdtls = require("jdtls")
 
+            -- Register the JDKs installed via SDKMAN so jdtls compiles/runs each
+            -- project against the JDK matching its source level (Eclipse execution
+            -- environments). Discovered from ~/.sdkman/candidates/java/*; the one
+            -- SDKMAN currently points to (the `current` symlink) is the default.
+            local function java_runtimes()
+                local sdk_java = vim.fn.expand("~/.sdkman/candidates/java")
+                if vim.fn.isdirectory(sdk_java) == 0 then
+                    return {}
+                end
+                -- Absolute path SDKMAN's `current` resolves to, to flag the default
+                local current = vim.fn.resolve(sdk_java .. "/current")
+
+                -- Multiple SDKMAN installs can map to the same execution
+                -- environment (e.g. 17.0.9-tem and 17.0.5-zulu -> JavaSE-17), but
+                -- jdtls needs unique names, so dedupe per EE (prefer `current`).
+                local by_ee = {}
+                for _, path in ipairs(vim.fn.glob(sdk_java .. "/*", false, true)) do
+                    local name = vim.fn.fnamemodify(path, ":t")
+                    local major = name ~= "current" and name:match("^(%d+)")
+                    if major and vim.fn.isdirectory(path) == 1 then
+                        major = tonumber(major)
+                        local ee = major == 8 and "JavaSE-1.8" or ("JavaSE-" .. major)
+                        if not by_ee[ee] or path == current then
+                            by_ee[ee] = {
+                                name = ee,
+                                path = path,
+                                default = (path == current) or nil,
+                            }
+                        end
+                    end
+                end
+
+                local runtimes = {}
+                for _, rt in pairs(by_ee) do
+                    table.insert(runtimes, rt)
+                end
+                return runtimes
+            end
+
             local root_markers = { ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" }
             local root_dir = require("jdtls.setup").find_root(root_markers)
             if not root_dir then return end
@@ -38,7 +77,14 @@ return {
                     end
                 end
             end
-            local workspace_dir = vim.fn.stdpath("data") .. "/jdtls/workspaces/" .. project_name
+            -- Isolate the workspace per checkout: multiple git worktrees of the
+            -- same project share the same artifactId/folder name, so keying the
+            -- workspace only on project_name would make them fight over one
+            -- jdtls .metadata dir (index corruption, "workspace in use" errors).
+            -- Appending a short hash of the absolute root_dir keeps names
+            -- readable while giving every worktree its own isolated workspace.
+            local workspace_id = project_name .. "-" .. vim.fn.sha256(root_dir):sub(1, 10)
+            local workspace_dir = vim.fn.stdpath("data") .. "/jdtls/workspaces/" .. workspace_id
 
             local jdtls_bin = vim.fn.exepath("jdtls") or "jdtls"
 
@@ -210,7 +256,10 @@ return {
                             },
                         },
 
-                        configuration = { updateBuildConfiguration = "automatic" },
+                        configuration = {
+                            updateBuildConfiguration = "automatic",
+                            runtimes = java_runtimes(),
+                        },
                         eclipse       = { downloadSources = true },
                         maven         = { downloadSources = true, updateSnapshots = false },
                     },
