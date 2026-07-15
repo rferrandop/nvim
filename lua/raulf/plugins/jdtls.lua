@@ -86,7 +86,30 @@ return {
             local workspace_id = project_name .. "-" .. vim.fn.sha256(root_dir):sub(1, 10)
             local workspace_dir = vim.fn.stdpath("data") .. "/jdtls/workspaces/" .. workspace_id
 
-            local jdtls_bin = vim.fn.exepath("jdtls") or "jdtls"
+            -- Buscar jdtls en PATH y rutas comunes (macOS con Homebrew)
+            local jdtls_bin = vim.fn.exepath("jdtls")
+            if jdtls_bin == "" then
+                -- Fallback: buscar en rutas típicas de Homebrew/Nix
+                local fallback_paths = {
+                    "/opt/homebrew/bin/jdtls",
+                    "/usr/local/bin/jdtls",
+                    "/nix/var/nix/profiles/default/bin/jdtls",
+                    vim.fn.expand("~/.nix-profile/bin/jdtls"),
+                }
+                for _, path in ipairs(fallback_paths) do
+                    if vim.fn.executable(path) == 1 then
+                        jdtls_bin = path
+                        break
+                    end
+                end
+            end
+            if jdtls_bin == "" then
+                vim.notify(
+                    "jdtls not found. Install: brew install jdtls",
+                    vim.log.levels.ERROR
+                )
+                return
+            end
 
             -- Lombok: check ~/.m2 for any lombok version, pick the highest
             local lombok_path = nil
@@ -208,6 +231,12 @@ return {
                             importOrder = { "java", "javax", "jakarta", "org", "com" },
                             guessMethodArguments = true,
                             overwrite = true,
+                            -- Mostrar primero completions de la clase actual
+                            matchCase = "firstLetter",
+                            -- Habilitar postfix completions (.for, .if, etc)
+                            postfix = { enabled = true },
+                            -- Máximos resultados (evita mostrar todo Object/Enum)
+                            maxResults = 50,
                         },
 
                         saveActions = { organizeImports = true },

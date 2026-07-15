@@ -44,6 +44,11 @@ return {
 
             -- Load friendly-snippets
             require("luasnip.loaders.from_vscode").lazy_load()
+            
+            -- Cargar postfix snippets para Java
+            local luasnip = require("luasnip")
+            local java_postfix = require("raulf.snippets.java-postfix")
+            luasnip.add_snippets("java", java_postfix)
 
             -- Configurar servidores LSP
             lsp.config("nil_ls", {
@@ -91,6 +96,32 @@ return {
             local luasnip = require('luasnip')
             local cmp_select = { behavior = cmp.SelectBehavior.Select }
 
+            -- Comparador personalizado para Java: prioriza métodos de la clase sobre heredados
+            local function compare_java_members(entry1, entry2)
+                local lsp1 = entry1.source.source.client
+                local lsp2 = entry2.source.source.client
+                
+                -- Solo aplicar a jdtls
+                if not lsp1 or not lsp2 or lsp1.name ~= "jdtls" or lsp2.name ~= "jdtls" then
+                    return nil
+                end
+
+                local detail1 = entry1.completion_item.detail or ""
+                local detail2 = entry2.completion_item.detail or ""
+
+                -- Los métodos heredados de Object/primitivos suelen tener estos details
+                local is_inherited1 = detail1:match("Object") or detail1:match("Enum") or detail1:match("Class<")
+                local is_inherited2 = detail2:match("Object") or detail2:match("Enum") or detail2:match("Class<")
+
+                if is_inherited1 and not is_inherited2 then
+                    return false  -- entry2 gana (no heredado)
+                elseif not is_inherited1 and is_inherited2 then
+                    return true   -- entry1 gana (no heredado)
+                end
+
+                return nil  -- dejar que otros comparadores decidan
+            end
+
             cmp.setup({
                 snippet = {
                     expand = function(args)
@@ -121,6 +152,22 @@ return {
                 }, {
                     { name = 'buffer', max_item_count = 8 },
                 }),
+                sorting = {
+                    priority_weight = 2,
+                    comparators = {
+                        cmp.config.compare.offset,
+                        cmp.config.compare.exact,
+                        cmp.config.compare.score,
+                        compare_java_members,  -- Comparador personalizado para Java
+                        cmp.config.compare.recently_used,
+                        -- Priorizar métodos de la clase sobre heredados (jdtls usa sortText)
+                        cmp.config.compare.sort_text,
+                        cmp.config.compare.locality,
+                        cmp.config.compare.kind,
+                        cmp.config.compare.length,
+                        cmp.config.compare.order,
+                    },
+                },
                 pumheight = 6,
             })
 
