@@ -27,3 +27,5 @@ vim.opt.signcolumn = "yes"
 vim.opt.isfname:append("@-@")
 
 vim.opt.updatetime = 50
+
+vim.o.switchbuf = "useopen,usetab"

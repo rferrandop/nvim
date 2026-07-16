@@ -15,13 +15,21 @@ return {
                         ["<C-d>"] = false,
                     },
                 },
-                layout_strategy = 'horizontal',
+                -- Layout vertical: resultados arriba (pequeño), preview abajo (grande)
+                layout_strategy = 'vertical',
                 layout_config = {
-                    horizontal = {
-                        preview_width = 0.55,
-                        results_width = 0.8,
+                    prompt_position = "top",
+                    vertical = {
+                        results_height = 0.20,
+                        preview_height = 0.80,
+                        mirror = true,
                     },
+                    width = 0.8,   -- Más ancho para ver rutas completas
+                    height = 0.8,
                 },
+                -- No truncar texto en resultados
+                results_title = false,
+                dynamic_preview_title = true,
                 file_ignore_patterns = { "node_modules", "target", "dist", "build", ".git" },
             },
             pickers = {
@@ -32,6 +40,13 @@ return {
                     additional_args = function()
                         return { "--hidden" }
                     end,
+                },
+                -- Configurar lsp_dynamic_workspace_symbols para búsqueda de clases
+                lsp_dynamic_workspace_symbols = {
+                    -- Mostrar el path completo sin truncar
+                    fname_width = 0,  -- Ancho para el nombre de archivo (ajusta si necesitas más)
+                    symbol_width = 80, -- Ancho para el símbolo
+                    show_line = false, -- No mostrar número de línea (ocupa espacio)
                 },
             },
         })
@@ -142,42 +157,6 @@ return {
                 end,
                 desc = "Find all files"
             },
-            -- Disabled: Old LSP-based file finder
-            -- {
-            --     "<C-o>",
-            --     function()
-            --         local t = require('telescope.builtin')
-            --         local lsp_ft = {
-            --             jdtls = "*.java",
-            --             lua_ls = "*.lua",
-            --         }
-            --
-            --         local active_lsp = nil
-            --         for _, client in pairs(vim.lsp.get_active_clients({ bufnr = 0 })) do
-            --             if lsp_ft[client.name] then
-            --                 active_lsp = lsp_ft[client.name]
-            --                 break -- Stop at the first match
-            --             end
-            --         end
-            --
-            --         local is_git = vim.fn.system("git rev-parse --is-inside-work-tree") == "true\n"
-            --         local find = { "rg", "--files", "--hidden", "--glob", "!.git/*" }
-            --
-            --         if active_lsp then
-            --             table.insert(find, "--glob")
-            --             table.insert(find, active_lsp)
-            --         end
-            --
-            --         local opts = {}
-            --         if is_git and not active_lsp then
-            --             t.git_files()
-            --         else
-            --             opts.find_command = find
-            --             t.find_files(opts)
-            --         end
-            --     end,
-            --     desc = "Find Files (git)"
-            -- },
             {
                 "<C-o>",
                 function()
@@ -203,6 +182,36 @@ return {
                     t.find_files(opts)
                 end,
                 desc = "Find Files (Project Scope)"
+            },
+            {
+                "<leader>fc",
+                function()
+                    local t = require('telescope.builtin')
+                    
+                    -- Verificar que hay un LSP activo
+                    local clients = vim.lsp.get_active_clients({ bufnr = 0 })
+                    if #clients == 0 then
+                        vim.notify("No LSP client active", vim.log.levels.WARN)
+                        return
+                    end
+                    
+                    -- Usar lsp_dynamic_workspace_symbols (funciona, búsqueda incremental)
+                    t.lsp_dynamic_workspace_symbols({
+                        prompt_title = "Find Classes & Symbols (type to search)",
+                    })
+                end,
+                desc = "Find Classes (LSP)",
+            },
+            {
+                "<leader>fs",
+                function()
+                    local t = require('telescope.builtin')
+                    -- Buscar cualquier símbolo LSP (métodos, clases, variables, etc)
+                    t.lsp_dynamic_workspace_symbols({
+                        prompt_title = "Find Symbols (LSP)",
+                    })
+                end,
+                desc = "Find Symbols (LSP)",
             },
         }
     end,
